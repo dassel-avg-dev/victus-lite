@@ -40,7 +40,6 @@ It communicates directly with HP's ACPI/WMI BIOS interface (`ROOT\WMI`, class `h
 | `main.cpp` | CLI argument parser, elevation check, RPM clamping, and interactive menu. |
 | `build.bat` | Build script supporting MSVC (`cl`), MinGW (`g++`), and Clang (`clang++`). |
 | `setup.ps1` | Checks requirements (64-bit Windows, `hpqBIntM`, C++ compiler), installs `w64devkit` if missing, and builds `victus.exe`. |
-| `.github/workflows/build.yml` | GitHub Actions CI workflow that builds, smoke-tests, and packages `victus.exe`. |
 | `assets/screenshot.png` | CLI help output screenshot. |
 | `LICENSE` | MIT License. |
 | `.gitignore` | Ignores compiled binaries and build/IDE artifacts. |
