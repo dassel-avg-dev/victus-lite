@@ -4,6 +4,8 @@ A lightweight, zero-dependency C++17 CLI and interactive utility for controlling
 
 It communicates directly with HP's ACPI/WMI BIOS interface (`ROOT\WMI`, class `hpqBIntM`) without kernel drivers (such as WinRing0), background services, telemetry, or OMEN Gaming Hub bloat.
 
+![victus CLI screenshot](assets/screenshot.png)
+
 ---
 
 ## Features
@@ -36,6 +38,7 @@ It communicates directly with HP's ACPI/WMI BIOS interface (`ROOT\WMI`, class `h
 | `hp_wmi.hpp` | Header-only C++17 COM/WMI wrapper (`hp::WmiController`) for `hpqBIntM` / `hpqBDataIn`. |
 | `main.cpp` | CLI argument parser, elevation check, RPM clamping, and interactive menu. |
 | `build.bat` | Build script supporting MSVC (`cl`), MinGW (`g++`), and Clang (`clang++`). |
+| `assets/screenshot.png` | CLI help output screenshot. |
 | `.gitignore` | Ignores compiled binaries and build/IDE artifacts. |
 
 ---
