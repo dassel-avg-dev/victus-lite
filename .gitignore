@@ -1,0 +1,14 @@
+# Compiled binaries & build artifacts
+*.exe
+*.obj
+*.o
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.out
+
+# IDE / Editor folders
+.vs/
+.vscode/
+*.user
