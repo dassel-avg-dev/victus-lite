@@ -11,11 +11,12 @@ It communicates directly with HP's ACPI/WMI BIOS interface (`ROOT\WMI`, class `h
 ## Features
 
 - **Zero background footprint:** Runs only when invoked and exits immediately.
-- **No third-party dependencies:** Uses standard Windows COM / WMI APIs (`ole32`, `oleaut32`, `wbemuuid`).
-- **Performance / Thermal Mode switching:** `Balanced`, `Performance`, and `Cool / Eco`.
+- **No third-party dependencies:** Uses standard Windows COM / WMI APIs (`ole32`, `oleaut32`, `wbemuuid`, `shell32`).
+- **Performance / Thermal Mode switching:** `Balanced`, `Performance`, and `Cool / Eco` (automatic **v1** with **v0** fallback, plus `--v0` / `--v1` overrides).
 - **Fan control:** `Auto`, `Max`, `Off` (disables max/manual overrides + enables Cool/Eco), and manual RPM level setting (when permitted by BIOS).
 - **Live fan telemetry:** Reads current Fan 1 and Fan 2 speeds in RPM.
 - **Safety clamping:** Manual fan targets are clamped to `0` (Auto) or `20..60` (2000–6000 RPM).
+- **Double-click UAC prompt:** Running `victus.exe` interactively without arguments automatically prompts for Administrator rights.
 
 ---
 
@@ -39,7 +40,9 @@ It communicates directly with HP's ACPI/WMI BIOS interface (`ROOT\WMI`, class `h
 | `main.cpp` | CLI argument parser, elevation check, RPM clamping, and interactive menu. |
 | `build.bat` | Build script supporting MSVC (`cl`), MinGW (`g++`), and Clang (`clang++`). |
 | `setup.ps1` | Checks requirements (64-bit Windows, `hpqBIntM`, C++ compiler), installs `w64devkit` if missing, and builds `victus.exe`. |
+| `.github/workflows/build.yml` | GitHub Actions CI workflow that builds, smoke-tests, and packages `victus.exe`. |
 | `assets/screenshot.png` | CLI help output screenshot. |
+| `LICENSE` | MIT License. |
 | `.gitignore` | Ignores compiled binaries and build/IDE artifacts. |
 
 ---
@@ -88,17 +91,19 @@ Open **Terminal (Admin)** (`Win + X` → **Terminal (Admin)**).
 
 ### CLI Commands
 
-| Command | Aliases | Action |
+| Command | Aliases / Flags | Action |
 | :--- | :--- | :--- |
-| `victus` | — | Launch the interactive menu |
+| `victus` | — | Launch the interactive menu (auto-prompts UAC if not elevated) |
 | `victus status` | `st` | Print current Fan 1 and Fan 2 speeds (RPM) |
-| `victus perf` | `performance` | Set **Performance** thermal profile (`0x31`) |
-| `victus balanced` | `bal` | Set **Balanced** thermal profile (`0x30`) |
-| `victus cool` | `eco` | Set **Cool / Eco** thermal profile (`0x50`) |
+| `victus perf` | `performance` | Set **Performance** thermal profile (v1: `0x31`, v0: `0x01`) |
+| `victus balanced` | `bal` | Set **Balanced** thermal profile (v1: `0x30`, v0: `0x00`) |
+| `victus cool` | `eco` | Set **Cool / Eco** thermal profile (v1: `0x50`, v0: `0x02`) |
 | `victus auto` | `fan-auto` | Disable Max override and return fans to BIOS Auto |
-| `victus off` | — | Turn off Max/manual fan overrides (`0x27`/`0x2E`) and switch to **Cool / Eco** (`0x50`) |
+| `victus off` | — | Turn off Max/manual fan overrides (`0x27`/`0x2E`) and switch to **Cool / Eco** |
 | `victus max` | `fan-max` | Force fans to **Max** speed |
 | `victus fan <n> [n2]` | `fan-set` | Set manual speed in 100-RPM units (`0` = auto, `20..60` = 2000–6000 RPM) |
+| `--v0` / `--v1` | *(flag)* | Force legacy v0 or modern v1 thermal policy bytes (default: try v1, fallback to v0) |
+| `victus --version` | `-v`, `version` | Print version (does not require Admin) |
 | `victus --help` | `-h`, `help` | Print command help (does not require Admin) |
 
 ### Examples
@@ -140,7 +145,7 @@ Compatibility depends on which HP BIOS thermal policy version (**v1** vs. **v0**
 | :--- | :--- | :--- |
 | **Newer HP Victus 15** (`15-fb3xxx`, `15-fa1xxx+`, Ryzen 7000+ / Intel 13th+ Gen, RTX 40-series) | **Supported (v1)** | Uses v1 thermal policy bytes (`0x30` Balanced, `0x31` Performance, `0x50` Cool). `status`, `perf`, `bal`, `cool`, `auto`, `off`, and `max` work; custom `fan <n>` (`0x2E`) may be locked by BIOS on some Victus 15 models. |
 | **Newer HP Victus 16 & OMEN** (`16-r`, `16-s` series, modern OMEN laptops) | **Supported (v1)** | Uses v1 thermal policy bytes (`0x30` / `0x31` / `0x50`). Typically also supports manual `fan <n>` (`0x2E`) RPM control. |
-| **Older HP Victus 15 / 16 & OMEN** (11th/12th Gen Intel `15-fa0xxx`, `16-d0xxx`, Ryzen 5000 `16-e0xxx`, RTX 30-series) | **Partial (v0)** | Uses legacy v0 thermal policy bytes (`0x00` Balanced, `0x01` Performance, `0x02` Cool). `status`, `max`, and `auto` (`0x2D` / `0x27`) may work, but `perf`/`bal`/`cool` require v0 byte support (currently hardcoded to v1 in `hp_wmi.hpp`). |
+| **Older HP Victus 15 / 16 & OMEN** (11th/12th Gen Intel `15-fa0xxx`, `16-d0xxx`, Ryzen 5000 `16-e0xxx`, RTX 30-series) | **Supported (v0 auto-fallback)** | Uses legacy v0 thermal policy bytes (`0x00` Balanced, `0x01` Performance, `0x02` Cool). `victus` automatically falls back to v0 if v1 is rejected, or pass `--v0` explicitly. |
 | **Non-gaming HP laptops & non-HP PCs** (Pavilion, Envy, ProBook, etc.) | **Not Supported** | Lacks the HP OMEN/Victus `hpqBIntM` thermal WMI interface. |
 
 ---
@@ -150,3 +155,11 @@ Compatibility depends on which HP BIOS thermal policy version (**v1** vs. **v0**
 - **Why `victus off` does not force permanent 0 RPM:** HP's Embedded Controller (EC) and BIOS enforce minimum thermal safety curves. Sending `0` (`victus fan 0` or `victus off`) cancels manual/max overrides and hands control back to the BIOS in **Cool / Eco** mode so fans spin down as low as firmware permits (or stop at low idle temperatures if supported by your BIOS). Under load, the BIOS will still spin fans up to prevent overheating.
 - **Victus 15 manual RPM support:** Some HP Victus 15 BIOS versions only expose **Auto** and **Max** (`0x27`) and ignore or reject custom `0x2E` RPM levels, or revert manual levels after a short timeout unless refreshed.
 - **Admin requirement:** If you see `[FATAL] No hpqBIntM instance found`, verify you are running in an **Administrator** terminal on an HP OMEN/Victus system.
+
+---
+
+## Disclaimer & License
+
+This software interacts directly with undocumented HP BIOS/WMI interfaces (`hpqBIntM`). It is provided **AS-IS**, without warranty of any kind — use it at your own risk.
+
+Licensed under the [MIT License](LICENSE).

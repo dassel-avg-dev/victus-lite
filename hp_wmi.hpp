@@ -16,6 +16,7 @@
 #pragma comment(lib, "wbemuuid.lib")
 #pragma comment(lib, "ole32.lib")
 #pragma comment(lib, "oleaut32.lib")
+#pragma comment(lib, "shell32.lib")
 #endif
 
 namespace hp {
@@ -27,6 +28,18 @@ struct Bstr {
     Bstr(const Bstr&) = delete;
     Bstr& operator=(const Bstr&) = delete;
     operator BSTR() const { return value; }
+};
+
+enum class PolicyVersion {
+    Auto,
+    V1,
+    V0,
+};
+
+enum class ThermalProfile {
+    Balanced,
+    Performance,
+    Cool,
 };
 
 enum class PerformanceMode : uint8_t {
@@ -154,6 +167,35 @@ public:
         // Command 0x20008, CommandType 0x1A: { 0xFF, thermal_policy_byte }
         const std::vector<uint8_t> payload = { 0xFF, static_cast<uint8_t>(mode) };
         return call_bios(0x20008, 0x1A, payload, L"hpqBIOSInt0");
+    }
+
+    /**
+     * Set the thermal profile using HP v1 (0x30/0x31/0x50) or v0 (0x00/0x01/0x02) bytes.
+     * In Auto mode, tries v1 first and falls back to v0 if the BIOS rejects v1.
+     */
+    BiosCallResult set_thermal_profile(ThermalProfile profile, PolicyVersion version = PolicyVersion::Auto) {
+        auto policy_byte = [profile](bool v0) -> uint8_t {
+            switch (profile) {
+                case ThermalProfile::Balanced:    return v0 ? 0x00 : 0x30;
+                case ThermalProfile::Performance: return v0 ? 0x01 : 0x31;
+                case ThermalProfile::Cool:        return v0 ? 0x02 : 0x50;
+            }
+            return v0 ? 0x00 : 0x30;
+        };
+
+        auto send_policy = [this](uint8_t code) {
+            return call_bios(0x20008, 0x1A, { 0xFF, code }, L"hpqBIOSInt0");
+        };
+
+        if (version == PolicyVersion::V0) return send_policy(policy_byte(true));
+        if (version == PolicyVersion::V1) return send_policy(policy_byte(false));
+
+        BiosCallResult res = send_policy(policy_byte(false));
+        if (!res.ok) {
+            BiosCallResult v0_res = send_policy(policy_byte(true));
+            if (v0_res.ok) return v0_res;
+        }
+        return res;
     }
 
     BiosCallResult set_fan_max(bool enable) {
