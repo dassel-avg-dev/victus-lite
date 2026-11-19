@@ -1,4 +1,4 @@
-# victus-lite (`victus`)
+# victus-lite
 
 A lightweight, zero-dependency C++17 CLI and interactive utility for controlling performance modes and fan behavior on **HP Victus** and **HP OMEN** laptops.
 
