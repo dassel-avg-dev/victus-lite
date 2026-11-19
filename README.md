@@ -132,6 +132,19 @@ victus auto            # Return fans to default BIOS curve
 
 ---
 
+## Supported Models & Compatibility
+
+Compatibility depends on which HP BIOS thermal policy version (**v1** vs. **v0**) your motherboard firmware uses:
+
+| Hardware Variant | Support Status | Details |
+| :--- | :--- | :--- |
+| **Newer HP Victus 15** (`15-fb3xxx`, `15-fa1xxx+`, Ryzen 7000+ / Intel 13th+ Gen, RTX 40-series) | **Supported (v1)** | Uses v1 thermal policy bytes (`0x30` Balanced, `0x31` Performance, `0x50` Cool). `status`, `perf`, `bal`, `cool`, `auto`, `off`, and `max` work; custom `fan <n>` (`0x2E`) may be locked by BIOS on some Victus 15 models. |
+| **Newer HP Victus 16 & OMEN** (`16-r`, `16-s` series, modern OMEN laptops) | **Supported (v1)** | Uses v1 thermal policy bytes (`0x30` / `0x31` / `0x50`). Typically also supports manual `fan <n>` (`0x2E`) RPM control. |
+| **Older HP Victus 15 / 16 & OMEN** (11th/12th Gen Intel `15-fa0xxx`, `16-d0xxx`, Ryzen 5000 `16-e0xxx`, RTX 30-series) | **Partial (v0)** | Uses legacy v0 thermal policy bytes (`0x00` Balanced, `0x01` Performance, `0x02` Cool). `status`, `max`, and `auto` (`0x2D` / `0x27`) may work, but `perf`/`bal`/`cool` require v0 byte support (currently hardcoded to v1 in `hp_wmi.hpp`). |
+| **Non-gaming HP laptops & non-HP PCs** (Pavilion, Envy, ProBook, etc.) | **Not Supported** | Lacks the HP OMEN/Victus `hpqBIntM` thermal WMI interface. |
+
+---
+
 ## Notes & Limitations
 
 - **Why `victus off` does not force permanent 0 RPM:** HP's Embedded Controller (EC) and BIOS enforce minimum thermal safety curves. Sending `0` (`victus fan 0` or `victus off`) cancels manual/max overrides and hands control back to the BIOS in **Cool / Eco** mode so fans spin down as low as firmware permits (or stop at low idle temperatures if supported by your BIOS). Under load, the BIOS will still spin fans up to prevent overheating.
