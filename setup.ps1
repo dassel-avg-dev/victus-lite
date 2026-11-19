@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Checks build and runtime requirements for victus-control, installs a C++17
+    Checks build and runtime requirements for victus-lite, installs a C++17
     compiler (w64devkit MinGW-w64) if none is present, and builds victus.exe.
 
 .PARAMETER CheckOnly
@@ -57,7 +57,7 @@ function Add-UserPathEntry([string]$Dir) {
 function Install-W64Devkit {
     Write-Step "Fetching latest w64devkit release metadata from GitHub..."
     $api = 'https://api.github.com/repos/skeeto/w64devkit/releases/latest'
-    $release = Invoke-RestMethod -Uri $api -Headers @{ 'User-Agent' = 'victus-control-setup' }
+    $release = Invoke-RestMethod -Uri $api -Headers @{ 'User-Agent' = 'victus-lite-setup' }
     $asset = $release.assets | Where-Object { $_.name -match '^w64devkit-x64-.*\.7z\.exe$' } | Select-Object -First 1
     if (-not $asset) {
         throw "Could not find w64devkit-x64-*.7z.exe in latest GitHub release."
