@@ -38,12 +38,27 @@ It communicates directly with HP's ACPI/WMI BIOS interface (`ROOT\WMI`, class `h
 | `hp_wmi.hpp` | Header-only C++17 COM/WMI wrapper (`hp::WmiController`) for `hpqBIntM` / `hpqBDataIn`. |
 | `main.cpp` | CLI argument parser, elevation check, RPM clamping, and interactive menu. |
 | `build.bat` | Build script supporting MSVC (`cl`), MinGW (`g++`), and Clang (`clang++`). |
+| `setup.ps1` | Checks requirements (64-bit Windows, `hpqBIntM`, C++ compiler), installs `w64devkit` if missing, and builds `victus.exe`. |
 | `assets/screenshot.png` | CLI help output screenshot. |
 | `.gitignore` | Ignores compiled binaries and build/IDE artifacts. |
 
 ---
 
-## Building
+## Setup & Building
+
+### Automatic Setup (Recommended)
+
+Run `setup.ps1` to verify requirements (64-bit Windows, `hpqBIntM` WMI class, C++17 compiler), automatically download and install `w64devkit` (`g++`) if no compiler is found, and build `victus.exe`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\setup.ps1 -AddToPath
+```
+
+Useful flags:
+- `-CheckOnly`: Verify requirements without installing anything or building.
+- `-AddToPath`: Add the repository folder to your User `PATH` so `victus` can be run from any terminal.
+
+### Manual Build
 
 Open a terminal in the repository folder and run:
 
